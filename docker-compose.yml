@@ -1,0 +1,35 @@
+version: "3.5"
+
+services:
+  db:
+    container_name: postgres_fastapi
+    image: postgres
+    env_file:
+      - ./server/.env
+    volumes:
+      - ./postgres_db:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - fast_api
+
+  app:
+    container_name: backend_fastapi
+    build:
+      context: ./server
+    env_file:
+      - ./server/.env
+    volumes:
+      - ./server:/server
+    ports:
+      - "9991:8000"
+    links:
+      - db:db
+    restart: unless-stopped
+    depends_on:
+      - db
+    networks:
+      - fast_api
+
+networks:
+  fast_api:
+    driver: bridge
