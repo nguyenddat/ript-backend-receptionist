@@ -11,13 +11,13 @@ class ImageManager(object):
         self.supported_formats = [".jpg", "jpeg", ".png"]
         self.last_error: str = None
 
-    def load_img_file(file_dir, mode = "RGB"):
+    def load_img_file(self, file_dir, mode = "RGB"):
         img = Image.open(file_dir)
         if mode:
             img = img.convert(mode)
         return np.array(img)
 
-    def image_files_in_folder(folder_dir):
+    def image_files_in_folder(self, folder_dir):
         return [os.path.join(folder_dir, f) for f in os.listdir(folder_dir) if re.match(r'.*\.(jpg|jpeg|png)', f, flags = re.I)]
 
     def img_to_base64(self, file_dir: str) -> Optional[str]:
