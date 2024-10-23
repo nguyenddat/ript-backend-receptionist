@@ -2,3 +2,5 @@ postgres_db/
 *.db
 .env
 ript-receptionist/
+*.pkl
+data/

@@ -27,6 +27,16 @@ class ImageManager(object):
         with open(file_dir, "rb") as file:
                 return base64.b64encode(file.read().decode("utf-8"))
 
+    def base64_to_array(self, img_b64):
+        temp = img_b64.split(",")
+        if len(temp) != 2:
+            return None
+        else:
+            img_b64 = temp[1]
+            img_binary = base64.decode(img_b64)
+            image = Image.open(io.BytesIO(img_binary))
+            return np.array(image)
+
     def save_img_from_base64(self, img_b64, file_dir):
         temp = img_b64.split(",")
         if len(temp) != 2:
