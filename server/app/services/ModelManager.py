@@ -35,6 +35,7 @@ class ModelManager(object):
 
         # Storing error
         self.last_error = None
+        os.system('cls||clear')
 
     @staticmethod
     def cosine_similarity(a: np.array, b: np.array):
@@ -129,10 +130,10 @@ class ModelManager(object):
 
         self._save_stored_data()
 
-    def predict(self, img_array, imageManager):
+    def predict(self, img_b64, imageManager):
         result = {}
         others = []
-        # img_array = imageManager.base64_to_array(img_b64)
+        img_array = imageManager.base64_to_array(img_b64)
         faces, nums_of_people = self.embed_face(img_array)
         HEIGHT, WIDTH = img_array.shape[:2]
         LEFT, RIGHT, UPPER, LOWER = WIDTH // 4, WIDTH // 4 + WIDTH // 2, 0, HEIGHT
@@ -160,4 +161,3 @@ class ModelManager(object):
                         others.append(person["person"])
         result.update({"others": others})
         return result
-

@@ -1,75 +1,72 @@
 import os
-import io
-import json
 import shutil
-import base64
-import numpy as np
-from PIL import Image
-from typing import Dict, List, AnyStr
-from collections import defaultdict
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, status
+from typing import List, AnyStr, Dict
 
-from services.base_model import ConnectionManager
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, status
+from services import ConnectionManager, ImageManager, ModelManager, ExtractCCCD
 
 router = APIRouter()
-model = import_model()
-manager = ConnectionManager()
-TARGET_WEBSOCKET = None
-faces_data = import_data()
+connection_manager = ConnectionManager.ConnectionManager()
+image_manager = ImageManager.ImageManager()
+model_manager = ModelManager.ModelManager()
+model_manager._load_stored_data()
+TARGET_WEBSOCKET: WebSocket = None
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global TARGET_WEBSOCKET
-    global manager
+    TARGET_WEBSOCKET = WebSocket
     await manager.connect(websocket)
-    TARGET_WEBSOCKET = websocket
     try:
         while True:
             data = await websocket.receive_text()
-            image_data: str = None
             try:
-                temp = data.split(",")
-                image_data = temp[1]
-            except:
-                raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST, detail = Exception)
-            
-            image_binary = base64.b64decode(image_data)
-            image = Image.open(io.BytesIO(image_binary))
-            image_array = np.array(image)
-            nums_of_people = detect_nums_of_people(image_array, model)
-            if nums_of_people != 0:
-                names = face_recognition(image_array, model = model, faces_data = faces_data)
-                await manager.send_response({
-                    "key": "webcam", 
-                    "value": {"nums_of_people": nums_of_people, "person_datas": names}}, websocket)
-            else:
-                await manager.send_response({
-                    "key": "webcam", 
-                    "value": {"nums_of_people": nums_of_people, "person_datas": []}}, websocket)
-
+                result = model_manager.predict(data, image_manager)
+                await connection_manager.send_response({
+                    "success": True,
+                    "event": "webcam",
+                    "payload": result,
+                }, websocket)
+            except Exception as err:
+                result = []
+                await connection_manager.send_response({
+                    "success": False,
+                    "event": "webcam",
+                    "payload": result,
+                    "error": {
+                        "code": status.HTTP_400_BAD_REQUEST,
+                        "message": err
+                    }
+                }, websocket)
     except WebSocketDisconnect:
+        connection_manager.disconnect(websocket)
         TARGET_WEBSOCKET = None
 
 @router.post("/api/get-identity")
 async def get_identity(data: List[AnyStr]):
     global TARGET_WEBSOCKET, manager
     if not TARGET_WEBSOCKET:
-        raise HTTPException(status_code = 500, detail = "Chưa có ai kết nối đến máy chủ!")
+        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST , detail = "Chưa có ai kết nối đến máy chủ!")
     try:
-        decoded_data = extract_data(data)
-        await manager.send_response({
-            "key": "cccd",
-            "value": json.dumps(decoded_data)
+        decoded_data = ExtractCCCD.extract_data(data)
+        await connection_manager.send_response({
+            "success": True,
+            "event": "cccd",
+            "payload": decoded_data
         }, TARGET_WEBSOCKET)
     except Exception as err:
-        raise HTTPException(status_code = 503, detail = err)
+        await connection_manager.send_response({
+            "success": False,
+            "event": "cccd",
+            "payload": {},
+            "error": {
+                "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": err
+            }
+        })
 
 @router.post('/api/post-personal-img')
-async def post_personal_img(
-    data: Dict[AnyStr, List[AnyStr] | Dict[AnyStr, AnyStr] | AnyStr]
-    # DỮ LIỆU ĐƯỢC ĐỊNH DẠNG:
-        # Dict(str: dict(str: list) || list(str) || str)
-):
+async def post_personal_img(data: Dict[AnyStr, List[AnyStr] | Dict[AnyStr, AnyStr] | AnyStr]):
     if not data:
         raise HTTPException(
             status_code = status.HTTP_400_BAD_REQUEST,
@@ -83,8 +80,7 @@ async def post_personal_img(
     personal_id = personal_data['Identity Code']
     personal_data.update({'role': role})    
 
-    current_path = os.getcwd()
-    save_img_path = os.path.join(current_path, "app", "data", "img", personal_id)
+    save_img_path = os.path.join(f"./data/{personal_id}")
     if os.path.exists(save_img_path):
         shutil.rmtree(save_img_path)
 
@@ -93,53 +89,21 @@ async def post_personal_img(
         id = 0 
         for img in b64_img:
             img_path = os.path.join(save_img_path, f'{personal_id}_{id}.png')
-            save_image(img, img_path)
-
+            image_manager.save_img_from_base64(img, img_path)
             print(f"Lưu thành công ảnh: {personal_id}_{id}.png")
             with open(os.path.join(save_img_path, f'{personal_id}_{id}_base64.txt'), 'w') as file:
                 file.write(img)
             id += 1
-        save_personal_data(save_img_path, model, personal_data)
-        return {"response": "Request thành công"}
+        model_manager.load_new_data(save_img_path, image_manager)
+        return {
+            "success": True,
+        }
     except Exception as err:
         shutil.rmtree(save_img_path)
-        raise HTTPException(
-            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail = f"ERROR: {err}"
-        )
-    finally:
-        faces_data = import_data()
-
-@router.get("/api/get-all-data")
-async def get_all_data():
-    normalized_data = defaultdict(lambda: {
-        "embedding": [],
-        "Identity Code": None,
-        "Name": None,
-        "DOB": None,
-        "Gender": None,
-        "role": None
-    })
-
-    for entry in faces_data:
-        identity_code = entry["Identity Code"]
-        normalized_data[identity_code]["identity_code"] = entry["Identity Code"]
-        normalized_data[identity_code]["name"] = entry["Name"]
-        normalized_data[identity_code]["dob"] = entry["DOB"]
-        normalized_data[identity_code]["gender"] = entry["Gender"]
-        normalized_data[identity_code]["role"] = entry["role"]
-
-    final_data = list(normalized_data.values())
-
-    for i in range(len(final_data)):
-        person = final_data[i]
-        identity = person["identity_code"]
-        b64 = []
-        path = os.path.join(os.getcwd(), "app", "data", "img", identity)
-        for file in os.listdir(path):
-            if file.endswith("base64.txt"):
-                with open(os.path.join(path, file), 'r') as file:
-                    b64.append(file.read())
-        person["b64"] = b64
-        final_data[i] = person
-    return final_data
+        return {
+            "success": False,
+            "error": {
+                "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": err
+            }
+        }

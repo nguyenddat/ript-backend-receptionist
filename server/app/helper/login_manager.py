@@ -1,7 +1,7 @@
 from fastapi import HTTPException, Depends
 
-from app.models import User
-from app.services.srv_user import UserService
+from models import User
+from services.srv_user import UserService
 
 
 def login_required(http_authorization_credentials=Depends(UserService().reusable_oauth2)):

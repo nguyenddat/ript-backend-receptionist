@@ -8,8 +8,8 @@ from sqlalchemy.orm import Query
 from pydantic import BaseModel
 from contextvars import ContextVar
 
-from app.schemas.base import ResponseSchemaBase, MetadataSchema
-from app.helper.exception_handler import CustomException
+from schemas.base import ResponseSchemaBase, MetadataSchema
+from helper.exception_handler import CustomException
 
 T = TypeVar("T")
 C = TypeVar("C")

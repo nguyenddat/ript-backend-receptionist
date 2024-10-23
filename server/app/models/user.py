@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Boolean, DateTime, Integer, Sequence
 
-from app.models.base_class import BareBaseModel
+from models.base_class import BareBaseModel
 
 
 class User(BareBaseModel):

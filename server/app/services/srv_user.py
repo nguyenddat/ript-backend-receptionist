@@ -7,11 +7,11 @@ from fastapi_sqlalchemy import db
 from pydantic import ValidationError
 from starlette import status
 
-from app.models import User
-from app.core.config import settings
-from app.core.security import verify_password, get_password_hash
-from app.schemas.token import TokenPayload
-from app.schemas.user import UserCreateRequest, UserUpdateMeRequest, UserUpdateRequest
+from models import User
+from core.config import settings
+from core.security import verify_password, get_password_hash
+from schemas.token import TokenPayload
+from schemas.user import UserCreateRequest, UserUpdateMeRequest, UserUpdateRequest
 
 
 class UserService(object):

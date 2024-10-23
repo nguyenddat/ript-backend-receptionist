@@ -4,19 +4,19 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_sqlalchemy import db
 
-from app.helper.exception_handler import CustomException
-from app.helper.login_manager import login_required, PermissionRequired
-from app.helper.paging import Page, PaginationParams, paginate
-from app.schemas.base import DataResponse
-from app.schemas.user import UserItemResponse, UserCreateRequest, UserUpdateMeRequest, UserUpdateRequest
-from app.services.srv_user import UserService
-from app.models import User
+from helper.exception_handler import CustomException
+from helper.login_manager import login_required, PermissionRequired
+from helper.paging import Page, PaginationParams, paginate
+from schemas.base import DataResponse
+from schemas.user import UserItemResponse, UserCreateRequest, UserUpdateMeRequest, UserUpdateRequest
+from services.srv_user import UserService
+from models import User
 
 logger = logging.getLogger()
 router = APIRouter()
 
 
-@router.get("", dependencies=[Depends(login_required)], response_model=Page[UserItemResponse])
+@router.get("/", dependencies=[Depends(login_required)], response_model=Page[UserItemResponse])
 def get(params: PaginationParams = Depends()) -> Any:
     """
     API Get list User
@@ -29,7 +29,7 @@ def get(params: PaginationParams = Depends()) -> Any:
         return HTTPException(status_code=400, detail=logger.error(e))
 
 
-@router.post("", dependencies=[Depends(PermissionRequired('admin'))], response_model=DataResponse[UserItemResponse])
+@router.post("/", dependencies=[Depends(PermissionRequired('admin'))], response_model=DataResponse[UserItemResponse])
 def create(user_data: UserCreateRequest) -> Any:
     """
     API Create User
