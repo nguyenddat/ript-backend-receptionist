@@ -94,26 +94,6 @@ class ModelManager(object):
                 stored_data = pickle.load(file)
                 return stored_data["X"], stored_data["y"]
 
-    def load(self, train_dir, imageManager, verbose = True) -> Optional[None]:
-        for class_dir in os.listdir(train_dir):
-            temp = os.path.join(train_dir, class_dir)
-            if not os.path.isdir(temp):
-                continue
-            
-            for img in imageManager.image_files_in_folder(temp):
-                image = imageManager.load_img_file(img)
-
-                faces, nums_of_people = self.embed_face(image)
-                if nums_of_people != 1:
-                    if verbose:
-                        error = f"Not suitbale image for training: {img}"
-                        print(error)
-                    self.last_error = f"Not suitbale image for training: {img}"
-                else:
-                    self.X_stored.append(faces[0])
-                    self.y_stored.append(class_dir)
-        self._save_stored_data()
-
     def load_new_data(self, data_dir, imageManager, verbose = True) -> Optional[None]:
         class_dir = data_dir.replace("\\", "/").rstrip("/").split("/")[-1]
         for img in imageManager.image_files_in_folder(data_dir):
@@ -161,3 +141,6 @@ class ModelManager(object):
                         others.append(person["person"])
         result.update({"others": others})
         return result
+    
+    def get_last_error(self):
+        print(self.last_error)

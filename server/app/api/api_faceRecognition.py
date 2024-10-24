@@ -29,6 +29,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 }, websocket)
             except Exception as err:
                 result = []
+                model_manager.get_last_error()
                 await connection_manager.send_response({
                     "success": False,
                     "event": "webcam",
@@ -55,6 +56,7 @@ async def get_identity(data: List[AnyStr]):
             "payload": decoded_data
         }, TARGET_WEBSOCKET)
     except Exception as err:
+        model_manager.get_last_error()
         await connection_manager.send_response({
             "success": False,
             "event": "cccd",
@@ -99,6 +101,7 @@ async def post_personal_img(data: Dict[AnyStr, List[AnyStr] | Dict[AnyStr, AnySt
             "success": True,
         }
     except Exception as err:
+        model_manager.get_last_error()
         shutil.rmtree(save_img_path)
         return {
             "success": False,
