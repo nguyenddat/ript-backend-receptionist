@@ -5,21 +5,29 @@ import docx
 from datetime import datetime
 
 class ScheduleParser(object):
-    def __init__(self, save_dir = "./data/WeeklySchedule"):
-        self.save_dir = save_dir
+    def __init__(self, save_dir = None):
+        self.save_dir = self.check_save_dir(save_dir)
+        self.return_dir = os.path.join(self.save_dir, "WeeklySchedule.json")
         self.WeeklySchedule = self.load_stored_events() or []
         self.supported_formats = [".docx"]
         
-        self.return_dir = os.path.join(self.save_dir, "WeeklySchedule.json")
-
+    def check_save_dir(self, save_dir):
+        save_dir = save_dir or os.path.join(os.getcwd(), "server", "app", "data", "WeeklySchedule")
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+        return save_dir
+    
     def save_stored_events(self):
         with open(self.return_dir, "w", encoding = "utf-8") as file:
             json.dump(self.WeeklySchedule, file, indent = 4) 
         
     def load_stored_events(self):
-        with open(self.return_dir, "r", encoding = "utf-8") as file:
-            return json.load(file)  
-    
+        try:
+            with open(self.return_dir, "r", encoding = "utf-8") as file:
+                return json.load(file)
+        except:
+            return []
+
     def get_events(self):
         return self.WeeklySchedule
     

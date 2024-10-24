@@ -12,13 +12,23 @@ router = APIRouter()
 @router.post("/api/post-weekly-schedule")
 def post_lich_tuan(file: UploadFile = File(...)):
     if not file:
-        raise HTTPException(
-            status_code = status.HTTP_400_BAD_REQUEST, 
-            detail = "Không có dữ liệu"
-        )
+        return {
+            "success": False,
+            "error": {
+                "code": status.HTTP_400_BAD_REQUEST,
+                "message": "No file found"
+            }
+        }
+
     if file.content_type != "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        raise HTTPException(status_code=400, detail = f"Supported formats: {weekly_schedule.supported_formats}")
-    
+        return {
+            "success": False,
+            "error": {
+                "code": status.HTTP_400_BAD_REQUEST,
+                "message": f"Supported formats: {weekly_schedule.supported_formats}"
+            }
+        }
+
     file_path = os.path.join(weekly_schedule.save_dir, "WeeklySchedule.docx")
     try:
         with open(file_path, "wb") as buffer:

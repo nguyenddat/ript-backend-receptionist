@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi_sqlalchemy import DBSessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
-from api import api_login, api_user, api_faceRecognition
+from api import api_login, api_user, api_faceRecognition, api_weeklySchedule
 from models.base_class import Base
 # from db.base import engine
 from core.config import settings
@@ -28,9 +28,10 @@ def get_application() -> FastAPI:
         allow_headers=["*"],
     )
     # application.add_middleware(DBSessionMiddleware, db_url=settings.DATABASE_URL)
-    application.include_router(api_user.router, tags=["user"], prefix="/users")
-    application.include_router(api_login.router, tags=["login"], prefix="/login")
-    application.include_router(api_faceRecognition.router, tags = ["faceRecognition"], prefix = "/faceRecognition")
+    application.include_router(api_user.router, tags=["user"])
+    application.include_router(api_login.router, tags=["login"])
+    application.include_router(api_faceRecognition.router, tags = ["faceRecognition"])    
+    application.include_router(api_weeklySchedule.router, tags = ["weeklySchedule"])
     application.add_exception_handler(CustomException, http_exception_handler)
     return application
 
